@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.easyredis.modules.business.dao.DbBaseInfoDao">
+
+    <resultMap id="BaseResultMap" type="com.easyredis.modules.business.entity.DbBaseInfo">
+            <id property="id" column="id" jdbcType="VARCHAR"/>
+            <result property="name" column="name" jdbcType="CHAR"/>
+            <result property="ip" column="ip" jdbcType="VARCHAR"/>
+            <result property="port" column="port" jdbcType="INTEGER"/>
+            <result property="isPassword" column="is_password" jdbcType="TINYINT"/>
+            <result property="password" column="password" jdbcType="VARCHAR"/>
+            <result property="remark" column="remark" jdbcType="VARCHAR"/>
+            <result property="createTime" column="create_time" jdbcType="DATE"/>
+            <result property="updateTime" column="update_time" jdbcType="DATE"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,name,ip,
+        port,is_password,password,
+        remark,create_time,update_time
+    </sql>
+</mapper>
