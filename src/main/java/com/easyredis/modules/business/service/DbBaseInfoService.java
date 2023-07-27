@@ -1,7 +1,10 @@
 package com.easyredis.modules.business.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import generator.domain.DbBaseInfo;
+import com.easyredis.common.utils.PageUtils;
+import com.easyredis.modules.business.entity.DbBaseInfo;
+
+import java.util.Map;
 
 /**
 * @author Asynchronous
@@ -10,4 +13,5 @@ import generator.domain.DbBaseInfo;
 */
 public interface DbBaseInfoService extends IService<DbBaseInfo> {
 
+    PageUtils queryPage(Map<String, Object> params);
 }
