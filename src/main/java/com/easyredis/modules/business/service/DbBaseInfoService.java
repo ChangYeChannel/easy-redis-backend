@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.easyredis.common.utils.PageUtils;
 import com.easyredis.modules.business.entity.DbBaseInfo;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -14,4 +15,16 @@ import java.util.Map;
 public interface DbBaseInfoService extends IService<DbBaseInfo> {
 
     PageUtils queryPage(Map<String, Object> params);
+
+    void deleteBatch(Long[] ids);
+
+    List<String> init();
+
+    boolean checkPort(Map<String, Object> params);
+
+    List<Integer> showPort(Map<String, Object> params);
+
+    boolean connectServer(Map<String, Object> params);
+
+    PageUtils connectedList();
 }

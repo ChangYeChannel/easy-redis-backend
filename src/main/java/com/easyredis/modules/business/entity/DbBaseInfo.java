@@ -1,11 +1,14 @@
 package com.easyredis.modules.business.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.easyredis.common.validator.group.AddGroup;
+import com.easyredis.common.validator.group.UpdateGroup;
 import lombok.Data;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 import java.util.Date;
 
@@ -20,21 +23,24 @@ public class DbBaseInfo implements Serializable {
      * 主键ID
      */
     @TableId
-    private String id;
+    private Long id;
 
     /**
      * 数据库别名
      */
+    @NotBlank(message="数据库别名不能为空", groups = {AddGroup.class, UpdateGroup.class})
     private String name;
 
     /**
      * 数据库ip
      */
+    @NotBlank(message="数据库IP地址不能为空", groups = {AddGroup.class, UpdateGroup.class})
     private String ip;
 
     /**
      * 数据库端口
      */
+    @NotNull(message = "数据库端口不能为空", groups = {AddGroup.class, UpdateGroup.class})
     private Integer port;
 
     /**
@@ -55,13 +61,11 @@ public class DbBaseInfo implements Serializable {
     /**
      * 创建时间
      */
-    @TableField(fill = FieldFill.INSERT)
     private Date createTime;
 
     /**
      * 最后一次修改时间
      */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updateTime;
 
     @TableField(exist = false)

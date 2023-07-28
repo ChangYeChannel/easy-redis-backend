@@ -371,7 +371,7 @@ CREATE INDEX IDX_QRTZ_FT_TG ON QRTZ_FIRED_TRIGGERS(SCHED_NAME,TRIGGER_GROUP);
 
 -- 数据库基本信息表
 CREATE TABLE `db_base_info` (
-    `id` varchar(20) NOT NULL COMMENT '主键ID',
+    `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '主键ID',
     `name` char(10) DEFAULT NULL COMMENT '数据库别名',
     `ip` varchar(50) DEFAULT NULL COMMENT '数据库ip',
     `port` int(11) DEFAULT NULL COMMENT '数据库端口',
@@ -381,5 +381,5 @@ CREATE TABLE `db_base_info` (
     `create_time` date DEFAULT NULL COMMENT '创建时间',
     `update_time` date DEFAULT NULL COMMENT '最后一次修改时间',
     PRIMARY KEY (`id`)
-) ENGINE = InnoDB CHARSET = utf8mb4;
+) ENGINE = InnoDB AUTO_INCREMENT=1 CHARSET = utf8mb4;
 
