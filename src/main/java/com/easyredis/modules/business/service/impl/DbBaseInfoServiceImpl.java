@@ -11,7 +11,6 @@ import com.easyredis.modules.business.entity.DbBaseInfo;
 import com.easyredis.modules.business.entity.RedisResponse;
 import com.easyredis.modules.business.service.DbBaseInfoService;
 import org.apache.commons.lang.StringUtils;
-import org.redisson.client.RedisException;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisShardInfo;
@@ -86,7 +85,7 @@ public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo
         // 判断是否连接成功
         try {
             return "PONG".equals(jedis.ping());
-        } catch (RedisException e) {
+        } catch (Exception e) {
             return false;
         }
     }
