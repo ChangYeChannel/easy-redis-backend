@@ -112,11 +112,12 @@ public class BusinessController {
     /**
      * 根据传入的参数连接指定数据库服务
      */
-    @PostMapping("/databases/connectServer")
+    @GetMapping("/databases/connectServer")
     public R connectServer(@RequestParam Map<String, Object> params){
         boolean connectStatus = dbBaseInfoService.connectServer(params);
         if (connectStatus) {
-            return R.ok();
+            String count = dbBaseInfoService.getConnectDatabasesCount();
+            return R.ok().put("count",count);
         }else {
             return R.error();
         }
@@ -126,10 +127,10 @@ public class BusinessController {
      * 具体数据库连接信息列表
      */
     @GetMapping("/databases/list")
-    public R connectedList(){
-        PageUtils page = dbBaseInfoService.connectedList();
+    public R connectedList(@RequestParam Map<String, Object> params){
+        PageUtils datalist = dbBaseInfoService.connectedList(params);
 
-        return R.ok().put("page", page);
+        return R.ok().put("datalist", datalist);
     }
 
 }

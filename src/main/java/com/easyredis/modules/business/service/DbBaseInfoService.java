@@ -26,5 +26,7 @@ public interface DbBaseInfoService extends IService<DbBaseInfo> {
 
     boolean connectServer(Map<String, Object> params);
 
-    PageUtils connectedList();
+    PageUtils connectedList(Map<String, Object> params);
+
+    String getConnectDatabasesCount();
 }
