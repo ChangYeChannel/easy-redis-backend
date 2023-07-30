@@ -7,6 +7,7 @@ import com.easyredis.common.validator.ValidatorUtils;
 import com.easyredis.common.validator.group.AddGroup;
 import com.easyredis.common.validator.group.UpdateGroup;
 import com.easyredis.modules.business.entity.DbBaseInfo;
+import com.easyredis.modules.business.entity.RedisResponse;
 import com.easyredis.modules.business.service.DbBaseInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -119,7 +120,7 @@ public class BusinessController {
             String count = dbBaseInfoService.getConnectDatabasesCount();
             return R.ok().put("count",count);
         }else {
-            return R.error();
+            return R.error("连接失败！请检查连接信息");
         }
     }
 
@@ -133,4 +134,31 @@ public class BusinessController {
         return R.ok().put("datalist", datalist);
     }
 
+    /**
+     * 删除redis中数据
+     */
+    @SysLog("删除redis中数据")
+    @PostMapping("/databases/delete")
+    public R redisKeyDelete(@RequestBody String[] ids){
+        String resultMessage = dbBaseInfoService.deleteByKeys(ids);
+        return R.ok().put("message", resultMessage);
+    }
+
+    /**
+     * 获取某个Key的信息
+     */
+    @GetMapping("/databases/info/{key}")
+    public R info(@PathVariable("key") String key,@RequestParam Map<String, Object> params){
+        RedisResponse redisResponse = dbBaseInfoService.getValueByKey(key,params);
+        return R.ok().put("RedisResponse", redisResponse);
+    }
+
+    /**
+     * 保存或更新某个Key的信息
+     */
+    @PostMapping("/databases/save")
+    public R redisSave(@RequestBody RedisResponse redisResponse){
+        dbBaseInfoService.redisSave(redisResponse);
+        return R.ok();
+    }
 }

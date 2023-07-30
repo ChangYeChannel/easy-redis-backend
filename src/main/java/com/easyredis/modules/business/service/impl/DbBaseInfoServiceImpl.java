@@ -69,7 +69,11 @@ public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo
             shardInfo.setPassword(dbBaseInfo.getPassword());
         }
 
-        jedis = new Jedis(shardInfo);
+        try {
+            jedis = new Jedis(shardInfo);
+        }catch (Exception e) {
+            return false;
+        }
 
         // 判断是否连接成功
         return testConnection(jedis);
@@ -139,6 +143,7 @@ public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo
             // 如果已经连接就判断当前连接是否与传入的连接参数一致，如果一致就保持连接，不一致就断开连接重新根据传入参数建立新的连接
             if (!ip.equals(jedis.getClient().getHost()) || Integer.parseInt(port) != jedis.getClient().getPort()) {
                 jedis.close();
+                return connectManager(dbBaseInfo);
             }
             return true;
         }
@@ -178,10 +183,21 @@ public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo
                     String type = jedis.type(key);
                     // 根据当前键的不同类型，使用不同的方法获取值
                     String value = getValueByType(jedis,key,type);
+
                     RedisResponse redisResponse = new RedisResponse();
                     redisResponse.setKey(key);
                     redisResponse.setValue(value);
                     redisResponse.setType(type);
+
+                    // 设置当前键的过期时间
+                    Long ttl = jedis.ttl(key);
+                    if (ttl > 0) {
+                        redisResponse.setTtl(ttl);
+                    } else if (ttl == -1) {
+                        redisResponse.setTtl(-1L);
+                    } else {
+                        redisResponse.setTtl(-99L);
+                    }
 
                     redisResponseList.add(redisResponse);
                 }
@@ -222,6 +238,100 @@ public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo
             return config.get(1);
         } finally {
             jedis.close();
+        }
+    }
+
+    @Override
+    public String deleteByKeys(String[] ids) {
+        // 拿到当前操作库
+        String dataSource = ids[0];
+
+        String[] newIds = Arrays.copyOfRange(ids, 1, ids.length);
+
+        jedis.select(Integer.parseInt(dataSource));
+        long result = jedis.del(newIds);
+
+        String resultMessage;
+        if (result == newIds.length) {
+            resultMessage = "删除成功！";
+        } else if (result == 0) {
+            resultMessage = "删除失败！";
+        } else if (result == -1) {
+            resultMessage = "删除过程出现异常！";
+        } else {
+            resultMessage = "部分删除成功！";
+        }
+        return resultMessage;
+    }
+
+    @Override
+    public RedisResponse getValueByKey(String key,Map<String, Object> params) {
+        String dataSource = (String) params.get("dataSource");
+        jedis.select(Integer.parseInt(dataSource));
+
+        RedisResponse redisResponse = new RedisResponse();
+
+        String type = jedis.type(key);
+        String resultType;
+
+        switch (type) {
+            case "string":
+                resultType = "0";break;
+            case "list":
+                resultType = "1";break;
+            case "hash":
+                resultType = "4";break;
+            case "set":
+                resultType = "2";break;
+            case "zset":
+                resultType = "3";break;
+            default:
+                resultType = "";
+        }
+
+        // 根据当前键的不同类型，使用不同的方法获取值
+        String value = getValueByType(jedis,key,type);
+
+        redisResponse.setValue(value);
+        redisResponse.setType(resultType);
+
+        Long ttl = jedis.ttl(key);
+        if (ttl > 0) {
+            redisResponse.setTtl(ttl);
+        } else if (ttl == -1) {
+            redisResponse.setIsTTL("0");
+        } else {
+            redisResponse.setIsTTL("-1");
+        }
+        return redisResponse;
+    }
+
+    @Override
+    public void redisSave(RedisResponse redisResponse) {
+        String datasource = redisResponse.getDatasource();
+        jedis.select(Integer.parseInt(datasource));
+
+        jedis.set(redisResponse.getKey(), redisResponse.getValue());
+
+        // 设置不同的解析策略
+        switch (redisResponse.getType()) {
+            case "string":
+                jedis.set(redisResponse.getKey(), redisResponse.getValue());break;
+            case "list":
+                jedis.set(redisResponse.getKey(), redisResponse.getValue());break;
+            case "hash":
+                jedis.set(redisResponse.getKey(), redisResponse.getValue());break;
+            case "set":
+                jedis.set(redisResponse.getKey(), redisResponse.getValue());break;
+            case "zset":
+                jedis.set(redisResponse.getKey(), redisResponse.getValue());break;
+            default:
+                break;
+        }
+
+        if ("1".equals(redisResponse.getIsTTL())) {
+            // 设置键的过期时间
+            jedis.expire(redisResponse.getKey(), redisResponse.getTtl());
         }
     }
 
