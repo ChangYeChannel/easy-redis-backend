@@ -3,6 +3,7 @@ package com.easyredis.modules.business.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.easyredis.common.utils.PageUtils;
 import com.easyredis.modules.business.entity.DbBaseInfo;
+import com.easyredis.modules.business.entity.DispositionResponse;
 import com.easyredis.modules.business.entity.RedisResponse;
 
 import java.util.List;
@@ -35,5 +36,11 @@ public interface DbBaseInfoService extends IService<DbBaseInfo> {
 
     RedisResponse getValueByKey(String key,Map<String, Object> params);
 
-    void redisSave(RedisResponse redisResponse);
+    boolean redisSave(RedisResponse redisResponse);
+
+    boolean checkKey(Map<String, Object> params);
+
+    boolean checkConnected();
+
+    List<DispositionResponse> dispositionList();
 }

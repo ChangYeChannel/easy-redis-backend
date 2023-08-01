@@ -7,6 +7,7 @@ import com.easyredis.common.validator.ValidatorUtils;
 import com.easyredis.common.validator.group.AddGroup;
 import com.easyredis.common.validator.group.UpdateGroup;
 import com.easyredis.modules.business.entity.DbBaseInfo;
+import com.easyredis.modules.business.entity.DispositionResponse;
 import com.easyredis.modules.business.entity.RedisResponse;
 import com.easyredis.modules.business.service.DbBaseInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -130,7 +131,6 @@ public class BusinessController {
     @GetMapping("/databases/list")
     public R connectedList(@RequestParam Map<String, Object> params){
         PageUtils datalist = dbBaseInfoService.connectedList(params);
-
         return R.ok().put("datalist", datalist);
     }
 
@@ -154,11 +154,46 @@ public class BusinessController {
     }
 
     /**
+     * 检查某个Key是否已经存在
+     */
+    @GetMapping("/databases/checkKey")
+    public R checkKey(@RequestParam Map<String, Object> params){
+        boolean checked = dbBaseInfoService.checkKey(params);
+        return R.ok().put("checked", checked);
+    }
+
+    /**
      * 保存或更新某个Key的信息
      */
     @PostMapping("/databases/save")
     public R redisSave(@RequestBody RedisResponse redisResponse){
-        dbBaseInfoService.redisSave(redisResponse);
-        return R.ok();
+        boolean saveStatus = dbBaseInfoService.redisSave(redisResponse);
+        if (saveStatus) {
+            return R.ok();
+        } else {
+            return R.error("保存失败，格式转换错误，请检查value格式");
+        }
+    }
+
+    /**
+     * 检查当前连接情况
+     */
+    @GetMapping("/databases/checkConnected")
+    public R checkConnected(){
+        boolean saveStatus = dbBaseInfoService.checkConnected();
+        if (saveStatus) {
+            return R.ok();
+        } else {
+            return R.error("与redis服务连接已断开，请重新建立连接");
+        }
+    }
+
+    /**
+     * 获取当前连接的redis服务的配置
+     */
+    @GetMapping("/databases/dispositionList")
+    public R dispositionList(){
+        List<DispositionResponse> datalist = dbBaseInfoService.dispositionList();
+        return R.ok().put("datalist",datalist);
     }
 }

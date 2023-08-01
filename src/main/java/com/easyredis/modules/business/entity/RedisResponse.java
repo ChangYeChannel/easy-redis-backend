@@ -13,4 +13,13 @@ public class RedisResponse {
     private String value;
     private String isTTL;
     private Long ttl;
+
+    public RedisResponse(String key, String value) {
+        this.key = key;
+        this.value = value;
+    }
+
+    public RedisResponse() {
+
+    }
 }

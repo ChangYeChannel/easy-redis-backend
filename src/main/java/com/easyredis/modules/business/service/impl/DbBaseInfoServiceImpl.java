@@ -8,6 +8,7 @@ import com.easyredis.common.utils.PageUtils;
 import com.easyredis.common.utils.Query;
 import com.easyredis.modules.business.dao.DbBaseInfoDao;
 import com.easyredis.modules.business.entity.DbBaseInfo;
+import com.easyredis.modules.business.entity.DispositionResponse;
 import com.easyredis.modules.business.entity.RedisResponse;
 import com.easyredis.modules.business.service.DbBaseInfoService;
 import org.apache.commons.lang.StringUtils;
@@ -17,16 +18,13 @@ import redis.clients.jedis.JedisShardInfo;
 import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * @author Asynchronous
- * @description 针对表【db_base_info】的数据库操作Service实现
- * @createDate 2023-07-27 17:38:55
+ * &#064;description  针对表【db_base_info】的数据库操作Service实现
+ * &#064;createDate  2023-07-27 17:38:55
  */
 @Service("dbBaseInfoService")
 public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo>
@@ -158,58 +156,68 @@ public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo
         String dataSource = (String) params.get("dataSource");
         int pageNum = Integer.parseInt((String) params.get("page"));
         int pageSize = Integer.parseInt((String) params.get("limit"));
+        String likeKey = (String) params.get("likeKey");
 
         // 设置当前查询库
+        if (jedis == null) {
+            return null;
+        }
         jedis.select(Integer.parseInt(dataSource));
-
-        // 游标起始索引
-        int startIndex = (pageNum - 1) * pageSize;
-        // 游标结束索引
-        int endIndex = startIndex + pageSize - 1;
 
         // 分批次获取键
         String cursor = "0";
-        ScanParams scanParams = new ScanParams().match("*").count(pageSize);
-        // 批次数量
-        int batchNumber = 0;
+        ScanParams scanParams = new ScanParams();
+
+        // 模糊查询
+        if (likeKey != null && !"".equals(likeKey)) {
+            scanParams.match("*" + likeKey + "*").count(10000);
+        } else {
+            scanParams.match("*").count(10000);
+        }
+
         do {
             ScanResult<String> scanResult = jedis.scan(cursor, scanParams);
+            cursor = scanResult.getCursor();
             List<String> keys = scanResult.getResult();
 
-            // 如果当前批次属于要展示的页数范围内，则处理当前批次的键
-            if (batchNumber >= startIndex / pageSize && batchNumber <= endIndex / pageSize) {
-                // 处理当前批次的键
-                for (String key : keys) {
-                    String type = jedis.type(key);
-                    // 根据当前键的不同类型，使用不同的方法获取值
-                    String value = getValueByType(jedis,key,type);
+            for (String key : keys) {
+                String type = jedis.type(key);
+                String value = getValueByType(jedis,key,type);
+                RedisResponse redisResponse = new RedisResponse();
+                redisResponse.setKey(key);
+                redisResponse.setValue(value);
+                redisResponse.setType(type);
 
-                    RedisResponse redisResponse = new RedisResponse();
-                    redisResponse.setKey(key);
-                    redisResponse.setValue(value);
-                    redisResponse.setType(type);
-
-                    // 设置当前键的过期时间
-                    Long ttl = jedis.ttl(key);
-                    if (ttl > 0) {
-                        redisResponse.setTtl(ttl);
-                    } else if (ttl == -1) {
-                        redisResponse.setTtl(-1L);
-                    } else {
-                        redisResponse.setTtl(-99L);
-                    }
-
-                    redisResponseList.add(redisResponse);
+                // 设置当前键的过期时间
+                Long ttl = jedis.ttl(key);
+                if (ttl > 0) {
+                    redisResponse.setTtl(ttl);
+                } else if (ttl == -1) {
+                    redisResponse.setTtl(-1L);
+                } else {
+                    redisResponse.setTtl(-99L);
                 }
+
+                redisResponseList.add(redisResponse);
             }
-            // 获取下一个游标和更新批次数量
-            cursor = scanResult.getCursor();
-            batchNumber++;
-        } while (!"0".equals(cursor) && batchNumber <= endIndex / pageSize);
+
+        } while (!"0".equals(cursor));
+
+        // 分页处理
+        int total = redisResponseList.size();
+        int totalPages = (int) Math.ceil((double) total / pageSize);
+        if (pageNum > totalPages) {
+            pageNum = totalPages;
+        }
+
+        int startIndex = (pageNum - 1) * pageSize;
+        int endIndex = Math.min(startIndex + pageSize, total);
+
+        List<RedisResponse> dataList = redisResponseList.subList(startIndex, endIndex);
 
         PageUtils pageUtils = new PageUtils();
-        pageUtils.setList(redisResponseList);
-        pageUtils.setTotalCount(jedis.keys("*").size());
+        pageUtils.setList(dataList);
+        pageUtils.setTotalCount(redisResponseList.size());
         return pageUtils;
     }
 
@@ -224,7 +232,15 @@ public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo
             case "set":
                 return jedis.smembers(key).toString();
             case "zset":
-                return jedis.zrange(key, 0, -1).toString();
+                StringBuilder result = new StringBuilder("[");
+                for (String value : jedis.zrange(key, 0, -1)) {
+                    result.append("[").append(value).append(":");
+                    Double score = jedis.zscore(key, value);
+                    result.append(score).append("],");
+                }
+                result.deleteCharAt(result.length() - 1);
+                result.append("]");
+                return String.valueOf(result);
             default:
                 return "键类型未知，无法获取值信息";
         }
@@ -236,8 +252,9 @@ public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo
             // 获取 Redis 服务器数据库数量配置参数
             List<String> config = jedis.configGet("databases");
             return config.get(1);
-        } finally {
-            jedis.close();
+        } catch (Exception e) {
+            jedis.quit();
+            return "";
         }
     }
 
@@ -248,6 +265,9 @@ public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo
 
         String[] newIds = Arrays.copyOfRange(ids, 1, ids.length);
 
+        if (jedis == null) {
+            return null;
+        }
         jedis.select(Integer.parseInt(dataSource));
         long result = jedis.del(newIds);
 
@@ -267,6 +287,9 @@ public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo
     @Override
     public RedisResponse getValueByKey(String key,Map<String, Object> params) {
         String dataSource = (String) params.get("dataSource");
+        if (jedis == null) {
+            return null;
+        }
         jedis.select(Integer.parseInt(dataSource));
 
         RedisResponse redisResponse = new RedisResponse();
@@ -307,37 +330,121 @@ public class DbBaseInfoServiceImpl extends ServiceImpl<DbBaseInfoDao, DbBaseInfo
     }
 
     @Override
-    public void redisSave(RedisResponse redisResponse) {
+    public boolean redisSave(RedisResponse redisResponse) {
         String datasource = redisResponse.getDatasource();
+        String key = redisResponse.getKey();
+        String value = redisResponse.getValue();
+        String type = redisResponse.getType();
+        Long ttl = redisResponse.getTtl();
+        String isTTL = redisResponse.getIsTTL();
+
+        if (jedis == null) {
+            return false;
+        }
         jedis.select(Integer.parseInt(datasource));
+        jedis.del(key);
 
-        jedis.set(redisResponse.getKey(), redisResponse.getValue());
-
+        String[] readValue;
+        if (value.startsWith("[") || value.startsWith("{") && value.endsWith("]") || value.endsWith("}")) {
+            readValue = value.substring(1, value.length() - 1).split(",");
+        } else {
+            readValue = value.split(",");
+        }
         // 设置不同的解析策略
-        switch (redisResponse.getType()) {
-            case "string":
-                jedis.set(redisResponse.getKey(), redisResponse.getValue());break;
-            case "list":
-                jedis.set(redisResponse.getKey(), redisResponse.getValue());break;
-            case "hash":
-                jedis.set(redisResponse.getKey(), redisResponse.getValue());break;
-            case "set":
-                jedis.set(redisResponse.getKey(), redisResponse.getValue());break;
-            case "zset":
-                jedis.set(redisResponse.getKey(), redisResponse.getValue());break;
+        switch (type) {
+            case "0":
+                jedis.set(key, value);
+                break;
+            case "1":
+                try {
+                    jedis.lpush(key,readValue);
+                } catch (Exception e) {
+                    return false;
+                }
+                break;
+            case "2":
+                try {
+                    jedis.sadd(key,readValue);
+                } catch (Exception e) {
+                    return false;
+                }
+                break;
+            case "3":
+                try {
+                    Map<String, Double> zsetMap = new HashMap<>();
+                    for (String item : readValue) {
+                        String[] pair = item.substring(1, item.length() - 1).split(":");
+                        String resultValue = pair[0].trim();
+                        double score = Double.parseDouble(pair[1].trim());
+                        zsetMap.put(resultValue, score);
+                    }
+                    jedis.zadd(key,zsetMap);
+                } catch (Exception e) {
+                    return false;
+                }
+                break;
+            case "4":
+                try {
+                    Map<String, String> hashMap = new HashMap<>();
+                    for (String item : readValue) {
+                        String[] pair = item.split("=");
+                        String field = pair[0].trim();
+                        String resultValue = pair[1].trim();
+                        hashMap.put(field, resultValue);
+                    }
+                    jedis.hmset(key,hashMap);
+                } catch (Exception e) {
+                    return false;
+                }
+                break;
             default:
                 break;
         }
 
-        if ("1".equals(redisResponse.getIsTTL())) {
+        if ("1".equals(isTTL)) {
             // 设置键的过期时间
-            jedis.expire(redisResponse.getKey(), redisResponse.getTtl());
+            try {
+                jedis.expire(key, ttl);
+            } catch (Exception e) {
+                return false;
+            }
         }
+        return true;
     }
 
+    @Override
+    public boolean checkKey(Map<String, Object> params) {
+        String dataSource = (String) params.get("dataSource");
+        String key = (String) params.get("key");
 
+        if (jedis == null) {
+            return false;
+        }
+        jedis.select(Integer.parseInt(dataSource));
+
+        return jedis.exists(key);
+    }
+
+    @Override
+    public boolean checkConnected() {
+        return testConnection(jedis);
+    }
+
+    @Override
+    public List<DispositionResponse> dispositionList() {
+        if (jedis == null) {
+            return null;
+        }
+        List<DispositionResponse> responses = new ArrayList<>();
+        List<String> configs = jedis.configGet("*");
+
+        for (int i = 0; i < configs.size(); i++) {
+            DispositionResponse dispositionResponse = new DispositionResponse();
+            dispositionResponse.setKey(configs.get(i));
+            dispositionResponse.setValue(configs.get(++i));
+            responses.add(dispositionResponse);
+        }
+
+        return responses;
+    }
 }
-
-
-
-
