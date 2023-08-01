@@ -9,9 +9,9 @@
 package com.easyredis.modules.sys.redis;
 
 
-import com.easyredis.modules.sys.entity.SysConfigEntity;
 import com.easyredis.common.utils.RedisKeys;
 import com.easyredis.common.utils.RedisUtils;
+import com.easyredis.modules.sys.entity.SysConfigEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

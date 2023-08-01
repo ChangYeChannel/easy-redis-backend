@@ -11,11 +11,11 @@ package com.easyredis.modules.app.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.easyredis.modules.app.entity.UserEntity;
-import com.easyredis.modules.app.form.LoginForm;
 import com.easyredis.common.exception.RRException;
 import com.easyredis.common.validator.Assert;
 import com.easyredis.modules.app.dao.UserDao;
+import com.easyredis.modules.app.entity.UserEntity;
+import com.easyredis.modules.app.form.LoginForm;
 import com.easyredis.modules.app.service.UserService;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.stereotype.Service;

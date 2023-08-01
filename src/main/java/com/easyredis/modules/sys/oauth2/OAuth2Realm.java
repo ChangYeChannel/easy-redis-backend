@@ -8,9 +8,9 @@
 
 package com.easyredis.modules.sys.oauth2;
 
-import com.easyredis.modules.sys.service.ShiroService;
 import com.easyredis.modules.sys.entity.SysUserEntity;
 import com.easyredis.modules.sys.entity.SysUserTokenEntity;
+import com.easyredis.modules.sys.service.ShiroService;
 import org.apache.shiro.authc.*;
 import org.apache.shiro.authz.AuthorizationInfo;
 import org.apache.shiro.authz.SimpleAuthorizationInfo;

@@ -11,12 +11,12 @@ package com.easyredis.modules.sys.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.google.code.kaptcha.Producer;
 import com.easyredis.common.exception.RRException;
 import com.easyredis.common.utils.DateUtils;
 import com.easyredis.modules.sys.dao.SysCaptchaDao;
 import com.easyredis.modules.sys.entity.SysCaptchaEntity;
 import com.easyredis.modules.sys.service.SysCaptchaService;
+import com.google.code.kaptcha.Producer;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

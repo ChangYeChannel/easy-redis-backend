@@ -9,10 +9,10 @@
 package com.easyredis.modules.app.interceptor;
 
 
-import com.easyredis.modules.app.annotation.Login;
-import io.jsonwebtoken.Claims;
 import com.easyredis.common.exception.RRException;
+import com.easyredis.modules.app.annotation.Login;
 import com.easyredis.modules.app.utils.JwtUtils;
+import io.jsonwebtoken.Claims;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
